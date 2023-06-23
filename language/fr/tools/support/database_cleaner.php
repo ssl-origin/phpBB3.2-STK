@@ -91,8 +91,8 @@ $lang = array_merge($lang, array(
 
 	'NEXT_STEP'						=> 'Prochaine étape',
 	'NO_BOT_GROUP'					=> 'Impossible de réinitialiser les robots, le groupe des robots est manquant.',
-	'NO_PARENT'						=> 'Le module parent n’existe pas.<br />Erreur',
-	'NO_PARENTS'						=> 'No parents',
+	'NO_PARENT'						=> 'Le module parent n’existe pas.<br>Erreur',
+	'NO_PARENTS'						=> 'Les modules parents n'existent pas.<br>Erreur,
 
 	'PERMISSION_SETTINGS'			=> 'Options des permissions',
 	'PERMISSION_UPDATE_SUCCESS'		=> 'Les réglages des permissions ont été mis à jour.',
