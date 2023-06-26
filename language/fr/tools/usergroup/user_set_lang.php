@@ -40,5 +40,5 @@ if (empty($lang) || !is_array($lang))
 $lang = array_merge($lang, array(
 	'USER_SET_LANG'			=> 'Définition de la langue par défaut',
 	'USER_LANG_EXPLAIN'		=> 'Ici, vous pouvez changer la langue par défaut pour les groupes sélectionnés.',
-	'USER_LANG_OK'			=> 'Default language has been successfully changed for selected groups.',
+	'USER_LANG_OK'			=> 'La langue par défaut a été modifiée avec succès pour les groupes sélectionnés.',
 ));
