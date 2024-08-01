@@ -57,7 +57,7 @@ class delete_bbcode
 		'enable_urls'		=> false,
 	);
 
-	var $bbcodes = array('youtube', 'video', 'audio', 'media');
+	var $bbcodes = array('youtube', 'video', 'audio', 'media', 'url', 'BBvideo');
 
 	/**
 	* Number of posts to be parsed per run
@@ -89,6 +89,8 @@ class delete_bbcode
 			'forum_id'			=> array('INDEX', 'forum_id'),
 		),
 	);
+
+	var $pids = [];
 
 	/**
 	* Tool overview page
@@ -123,12 +125,11 @@ class delete_bbcode
 		$reparse_forum_ids	= $request->variable('reparseforums', array(0));
 		$create_backup 		= $request->variable('create_backup', false);
 		$all 				= $request->variable('reparseall', false);
-		$step				= $request->variable('step', 0);
-		$start				= $step * $this->step_size;
+		$last_post_id		= $request->variable('last_post_id', 0);
 		$cnt				= 0;
 		$bbcode				= $request->variable('bbcode_select', '');
 
-		if (!sizeof($reparse_forum_ids) && !$reparse_id && !$all && $step == 0)
+		if (!sizeof($reparse_forum_ids) && !$reparse_id && !$all && $last_post_id == 0)
 		{
 			trigger_error(user_lang('IDS_EMPTY'), E_USER_WARNING);
 		}
@@ -189,7 +190,7 @@ class delete_bbcode
 		}
 
 		// First step? Prepare the backup
-		if ($create_backup && $step == 0)
+		if ($create_backup && $last_post_id == 0)
 		{
 			$this->_prepare_backup();
 		}
@@ -213,10 +214,11 @@ class delete_bbcode
 					FROM ' . POSTS_TABLE . '
 					WHERE post_text '. $db->sql_like_expression(str_replace('*', $db->get_any_char(), '*' . $this->bbcodes[$bbcode] . '*')) . '';
 				$result		= $db->sql_query($sql);
-				$max = $this->max	= $db->sql_fetchfield('cnt', false, $result);
+				$this->max	= $db->sql_fetchfield('cnt', false, $result);
 				$db->sql_freeresult($result);
 			}
 
+/*
 			// Change step_size if needed
 			if ($start + $this->step_size > $this->max)
 			{
@@ -224,7 +226,8 @@ class delete_bbcode
 
 				// Make sure that the loop is finished
 				$last_batch = true;
-			}
+			} 
+*/
 		}
 
 		if (sizeof($reparse_posts))
@@ -247,10 +250,16 @@ class delete_bbcode
 				TOPICS_TABLE	=> 't',
 				USERS_TABLE		=> 'u',
 			),
-			'WHERE'		=> 'p.post_text '. $db->sql_like_expression(str_replace('*', $db->get_any_char(), '*' . $this->bbcodes[$bbcode] . '*')) . ' AND t.topic_id = p.topic_id AND u.user_id = p.poster_id AND f.forum_id = t.forum_id' . $sql_where . '',
+			'WHERE'		=> 'p.post_text '. $db->sql_like_expression(str_replace('*', $db->get_any_char(), '*' . $this->bbcodes[$bbcode] . '*')) . '
+				AND t.topic_id = p.topic_id
+				AND u.user_id = p.poster_id
+				AND f.forum_id = t.forum_id
+				AND p.post_id > ' . $last_post_id . '
+				' . $sql_where,
+			'ORDER_BY'			=> 'p.post_id ASC',
 		);
 		$sql	= $db->sql_build_query('SELECT', $sql_ary);
-		$result	= $db->sql_query_limit($sql, $this->step_size, $start);
+		$result	= $db->sql_query_limit($sql, $this->step_size);
 		$batch	= $db->sql_fetchrowset($result);
 		$db->sql_freeresult($result);
 
@@ -294,11 +303,13 @@ class delete_bbcode
 			}
 
 			// Re-submit the post through API
-			submit_post('edit', $this->data['post_subject'], $username, $this->data['topic_type'], $this->poll, $post_data, true, true);
+		      submit_post('edit', $this->data['post_subject'], $username, $this->data['topic_type'], $this->poll, $post_data, true, true);
+
+			$last_post_id = $this->data['post_id'];		
 		}
 
 		// Finished?
-		if ($last_batch)
+		if ($last_batch || empty($batch))
 		{
 			// Done!
 			$cache->destroy('_stk_reparse_posts');
@@ -306,12 +317,14 @@ class delete_bbcode
 		}
 
 		// Next step
-		$this->_next_step($step);
+		$this->_next_step($last_post_id);
 	}
 
 	function _reparse_post(&$post_data, $bbcode)
 	{
 		global $db, $user;
+
+		$this->pids[] = $this->data['post_id'];
 
 		// Some default variables that must be set
 		static $uninit = array();
@@ -403,7 +416,7 @@ class delete_bbcode
 
 		$replace = array(
 			'$1',
-			'$1',
+			'$2',
 		);
 
 		// Format the content as if it where *INSIDE* the posting field.
@@ -431,31 +444,29 @@ class delete_bbcode
 	* @param Integer $mode The current reparse mode
 	* @param Boolean $next_mode Move to the next reparse type
 	*/
-	function _next_step($step)
+	function _next_step($last_post_id)
 	{
 		global $template, $request;
 
 		$all = $request->variable('reparseall', false);
 		$create_backup = $request->variable('create_backup', false);
 
-		$_next_step	= ++$step;
-		$_rowsmax	= $this->max;
-
 		// Create the redirect params
 		$params = array(
 			'c'			=> 'admin',
 			't'			=> 'delete_bbcode',
-			'rowsmax'	=> $_rowsmax,
+			'rowsmax'	=> $this->max,
 			'submit'	=> true,
-			'step'		=> $_next_step,
+			'last_post_id'		=> $last_post_id,
 			'reparseall'	=> ($all) ? true : false,
 			'create_backup'	=> ($create_backup) ? true : false,
+			'bbcode_select'	=> $request->variable('bbcode_select', ''),
 		);
 
-		meta_refresh(1, append_sid(STK_ROOT_PATH . 'index.' . PHP_EXT, $params));
+		meta_refresh(2, append_sid(STK_ROOT_PATH . 'index.' . PHP_EXT, $params));
 		$template->assign_var('U_BACK_TOOL', false);
 
-		trigger_error('' . user_lang('DELETE_BBCODES') . '<br />' . user_lang('DELETE_BBCODE_PROGRESS', ($this->step_size), $this->max) . '');
+				trigger_error('' . user_lang('DELETE_BBCODES') . '<br />' . user_lang('DELETE_BBCODE_PROGRESS', ($this->step_size), $this->max) . '<br /><br />' . implode(', ', $this->pids));
 	}
 
 	function _trim_post_ids(&$post_id, $key)
@@ -512,7 +523,7 @@ class delete_bbcode
 
 function get_bbcodes()
 {
-	$bbcodes = array('youtube', 'video', 'audio', 'media');
+	$bbcodes = array('youtube', 'video', 'audio', 'media', 'url', 'BBvideo');
 	$s_bbcodes = '';
 	$i = 0;
 	foreach ($bbcodes as $bbcode)
