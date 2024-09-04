@@ -149,21 +149,25 @@ class erk_files_repair
 		$written = true;
 
 		//  Try open to write
-		if (!($fp = @fopen($file, 'w')))
+		$fp = @fopen($file, 'w');
+		if ($fp === false)
 		{
 			// Something went wrong
 			$written = false;
 		}
-
-		// Try write content to file
-		if (!(@fwrite($fp, $content)))
+		else
 		{
-			// Something went wrong
-			$written = false;
+			// Try write content to file
+			$write = @fwrite($fp, $content);
+			if ($write === false)
+			{
+				// Something went wrong
+				$written = false;
+			}
+			
+			// Close file
+			@fclose($fp);
 		}
-
-		// Close file
-		@fclose($fp);
 
 		if(!$written)
 		{
