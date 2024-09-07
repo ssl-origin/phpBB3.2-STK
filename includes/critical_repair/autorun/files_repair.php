@@ -149,7 +149,7 @@ class erk_files_repair
 		$written = true;
 
 		//  Try open to write
-		$fp = @fopen($file, 'w');	
+		$fp = @fopen($file, 'w');
 		if ($fp === false)
 		{
 			// Something went wrong
@@ -164,10 +164,9 @@ class erk_files_repair
 				// Something went wrong
 				$written = false;
 			}
-
+			
 			// Close file
 			@fclose($fp);
-				
 		}
 
 		if(!$written)
