@@ -1085,7 +1085,7 @@ class database_cleaner_controller
 				{
 					// Add module
 					$module_langname = strtoupper($module_id);
-					$key = array_find($this->db_cleaner->data->acp_modules, $module_langname);
+					$key = stk_array_find($this->db_cleaner->data->acp_modules, $module_langname);
 					if ($key)
 					{
 						$sql = 'SELECT module_class, module_id
