@@ -519,7 +519,7 @@ function get_acp_modules($acp_modules, &$modules)
 /**
 * Find keys in multidimensional associative array
 */
-function array_find($array, $needle)
+function stk_array_find($array, $needle)
 {
 	foreach($array as $cat)
 	{

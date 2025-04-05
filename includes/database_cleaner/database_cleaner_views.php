@@ -797,14 +797,14 @@ class database_cleaner_views
 		{
 			if (!in_array($module, $existing_modules))
 			{
-				$key = array_find($this->db_cleaner->data->acp_modules, $module);
+				$key = stk_array_find($this->db_cleaner->data->acp_modules, $module);
 				if ($key)
 				{
-					$parent_key = array_find($this->db_cleaner->data->acp_modules, $key);
+					$parent_key = stk_array_find($this->db_cleaner->data->acp_modules, $key);
 				}
 				if (isset($parent_key))
 				{
-					$cat_key = array_find($this->db_cleaner->data->acp_modules, $parent_key);
+					$cat_key = stk_array_find($this->db_cleaner->data->acp_modules, $parent_key);
 				}
 
 				if($cat_key)
