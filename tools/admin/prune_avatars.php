@@ -49,7 +49,7 @@ class prune_avatars
 
 				$sql = 'SELECT user_id, user_avatar
 						FROM ' . USERS_TABLE . '
-						WHERE user_avatar_type = \'avatar.driver.upload\'';
+						WHERE user_avatar_type = \'avatar.driver.upload\' OR user_avatar_type = 1';
 				$result = $db->sql_query($sql);
 
 				while ($data = $db->sql_fetchrow($result))
